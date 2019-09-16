@@ -19,9 +19,6 @@ server.get("/", (req, res) => {
 
 // Hashing password on POST
 server.post("/api/register", (req, res) => {
-  // let credentials = req.body;
-  // const hash = bcrypt.hashSync(credentials.password);
-
   let { username, password } = req.body;
   // 8 is the number of rounds - higher the number, the more secure the hash will be (harder for someone to pregenerate a hash)
   // try to have the # at 14 or higher
@@ -45,7 +42,7 @@ server.post("/api/login", (req, res) => {
     .then(user => {
       // checking password
       if (user && bcrypt.compareSync(password, user.password)) {
-        // returns true or false ) {
+        // returns true or false
         res.status(200).json({ message: `Welcome ${user.username}!` });
       } else {
         // Dont send 404 message because we dont want them to be guessing usernames
@@ -57,7 +54,7 @@ server.post("/api/login", (req, res) => {
     });
 });
 
-server.get("/api/users", (req, res) => {
+server.get("/api/users", restrictedUserValidation, (req, res) => {
   Users.find()
     .then(users => {
       res.json(users);
@@ -75,3 +72,31 @@ server.get("/hash", (request, response) => {
 
 const port = process.env.PORT || 5500;
 server.listen(port, () => console.log(`\n** Running on port ${port} **\n`));
+
+// middleware to check for username and password
+// if credentials are valid, let request continue, if invalid, return 401
+// use the middleware to restrict access to the GET endpoint /users
+
+function restrictedUserValidation(request, response, next) {
+  // we'll read the username and password from headers
+  // the client is responsible for setting those headers
+  const { username, password } = request.headers;
+
+  // no point on querying the database if the headers are not present
+  if (username && password) {
+    Users.findBy({ username })
+      .first()
+      .then(user => {
+        if (user && bcrypt.compareSync(password, user.password)) {
+          next();
+        } else {
+          response.status(401).json({ message: "Invalid Credentials" });
+        }
+      })
+      .catch(error => {
+        response.status(500).json({ message: "Unexpected error" });
+      });
+  } else {
+    response.status(400).json({ message: "No credentials provided" });
+  }
+}
