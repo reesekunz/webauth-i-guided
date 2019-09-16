@@ -6,6 +6,7 @@ const db = require("./database/dbConfig.js");
 const Users = require("./users/users-model.js");
 
 const bcrypt = require("bcryptjs");
+const restrictedUserValidation = require("./auth/restricted-middleware.js");
 
 const server = express();
 
@@ -77,26 +78,3 @@ server.listen(port, () => console.log(`\n** Running on port ${port} **\n`));
 // if credentials are valid, let request continue, if invalid, return 401
 // use the middleware to restrict access to the GET endpoint /users
 
-function restrictedUserValidation(request, response, next) {
-  // we'll read the username and password from headers
-  // the client is responsible for setting those headers
-  const { username, password } = request.headers;
-
-  // no point on querying the database if the headers are not present
-  if (username && password) {
-    Users.findBy({ username })
-      .first()
-      .then(user => {
-        if (user && bcrypt.compareSync(password, user.password)) {
-          next();
-        } else {
-          response.status(401).json({ message: "Invalid Credentials" });
-        }
-      })
-      .catch(error => {
-        response.status(500).json({ message: "Unexpected error" });
-      });
-  } else {
-    response.status(400).json({ message: "No credentials provided" });
-  }
-}
