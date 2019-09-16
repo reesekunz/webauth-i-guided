@@ -23,6 +23,8 @@ server.post("/api/register", (req, res) => {
   // const hash = bcrypt.hashSync(credentials.password);
 
   let { username, password } = req.body;
+  // 8 is the number of rounds - higher the number, the more secure the hash will be (harder for someone to pregenerate a hash)
+  // try to have the # at 14 or higher
   const hash = bcrypt.hashSync(password, 8);
 
   Users.add({ username, password: hash })
@@ -36,23 +38,18 @@ server.post("/api/register", (req, res) => {
 
 // Verifying passwords
 server.post("/api/login", (req, res) => {
-  // let { username, password } = req.body;
-  const credentials = req.body;
-
-  // find the user in the database by it's username then
-  if (!user || !bcrypt.compareSync(credentials.password, user.password)) {
-    return res.status(401).json({ error: "Incorrect credentials" });
-  }
-
-  // the user is valid, continue on
+  let { username, password } = req.body;
 
   Users.findBy({ username })
     .first()
     .then(user => {
-      if (user) {
+      // checking password
+      if (user && bcrypt.compareSync(password, user.password)) {
+        // returns true or false ) {
         res.status(200).json({ message: `Welcome ${user.username}!` });
       } else {
-        res.status(401).json({ message: "Invalid Credentials" });
+        // Dont send 404 message because we dont want them to be guessing usernames
+        res.status(401).json({ message: "You shall not pass!" });
       }
     })
     .catch(error => {
