@@ -7,12 +7,32 @@ const Users = require("./users/users-model.js");
 
 const bcrypt = require("bcryptjs");
 const restrictedUserValidation = require("./auth/restricted-middleware.js");
+// day 2 - adding session (npm install express-session)
+const session = require("express-session");
 
 const server = express();
 
 server.use(helmet());
 server.use(express.json());
 server.use(cors());
+
+const sessionConfig = {
+  // cookie name being sent to the browser, it would name the cookie sid by default if no name
+  name: "chocolateChip",
+  // want to encrypt with secret
+  secret: process.env.SESSION_SECRET || "keep it secret, keep it safe",
+  cookie: {
+    // maxAge - how long is this cookie going to be good for (in milliseconds)
+    maxAge: 1000 * 60 * 60,
+    // if http connection is not secure, dont send (true means only send cookie over https - want it to be true in production)
+    secure: false,
+    // true means JS has no access to the cookie (only the browser has access)
+    httpOnly: true
+  },
+  resave: false,
+  saveUninitialized: true // GDPR compliance (pop up where a user can agree that they want to recieve cookies)
+};
+server.use(session(sessionConfig));
 
 server.get("/", (req, res) => {
   res.send("It's alive!");
@@ -71,10 +91,9 @@ server.get("/hash", (request, response) => {
   response.send(`the hash for ${name} is ${hash}`);
 });
 
-const port = process.env.PORT || 5500;
+const port = process.env.PORT || 5600;
 server.listen(port, () => console.log(`\n** Running on port ${port} **\n`));
 
 // middleware to check for username and password
 // if credentials are valid, let request continue, if invalid, return 401
 // use the middleware to restrict access to the GET endpoint /users
-
