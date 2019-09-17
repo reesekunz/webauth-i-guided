@@ -63,6 +63,7 @@ server.post("/api/login", (req, res) => {
     .then(user => {
       // checking password
       if (user && bcrypt.compareSync(password, user.password)) {
+        req.session.user = user;
         // returns true or false
         res.status(200).json({ message: `Welcome ${user.username}!` });
       } else {
