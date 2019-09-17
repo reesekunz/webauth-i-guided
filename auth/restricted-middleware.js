@@ -22,10 +22,10 @@ module.exports = (req, res, next) => {
   //   });
   // from Day 1
 
-
-
   // from Day 2
   // Is the user logged in? Do we have information about the user in our session?
+  console.log(req.session);
+  console.log(req.session.user);
   if (req.session && req.session.user) {
     next();
   } else {
@@ -33,9 +33,6 @@ module.exports = (req, res, next) => {
   }
   // middleware doesnt need to verify credentials anymore, just needs to check in to see if the user has a session
 };
-
-
-
 
 // how you would access the headers with axios
 

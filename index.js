@@ -9,6 +9,8 @@ const bcrypt = require("bcryptjs");
 const restrictedUserValidation = require("./auth/restricted-middleware.js");
 // day 2 - adding session (npm install express-session)
 const session = require("express-session");
+// (npm i connect-session-knex) => have to require the Store after the session - remember to pass session using currying
+const KnexSessionStore = require("connect-session-knex")(session);
 
 const server = express();
 
@@ -30,7 +32,19 @@ const sessionConfig = {
     httpOnly: true
   },
   resave: false,
-  saveUninitialized: true // GDPR compliance (pop up where a user can agree that they want to recieve cookies)
+  saveUninitialized: true, // GDPR compliance (pop up where a user can agree that they want to recieve cookies)
+  // store is configuring what the session library is doing (tells it to save the session to the database)
+  // dont have to log in again after restarting server now! - session information now persistent to database
+  store: new KnexSessionStore({
+    // specific config for this library - db is the import from dbConfig
+    knex: db,
+    // creates table if no table to store session - would provide table name and sid field name by default
+    tablename: "knex sessions",
+    sidfieldname: "sessionid",
+    createtable: true,
+    // clean out expired session data
+    clearInterval: 1000 * 60 * 30
+  })
 };
 server.use(session(sessionConfig));
 
@@ -90,6 +104,21 @@ server.get("/hash", (request, response) => {
   const hash = bcrypt.hashSync(name, 8); // use bcryptjs to hash the name
 
   response.send(`the hash for ${name} is ${hash}`);
+});
+
+server.get("/logout", (req, res) => {
+  if (req.session) {
+    req.session.destroy(error => {
+      if (error) {
+        res.status(500).json({
+          message: "you can check out anytime you like but you can never leave"
+        });
+      }
+      res.status(200).json({ message: "bye" });
+    });
+  } else {
+    res.status(200).json({ message: "already logged out" });
+  }
 });
 
 const port = process.env.PORT || 5600;
